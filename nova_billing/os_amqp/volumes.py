@@ -27,16 +27,16 @@ target_methods = (
 def create_heart_request(method, body):
     if method not in target_methods:
         return None
-    
+
     heart_request = {
         "rtype": "nova/volume",
         "name": body["args"]["volume_id"],
     }
 
-    if method == "create_local_volume":        
-        heart_request["linear"] = body["args"]["size"]
+    if method == "create_local_volume":
+        heart_request["linear"] = body["args"]["size"] / (1024.0 ** 3)
     elif method == "resize_local_volume":
-        heart_request["linear"] = body["args"]["new_size"]
+        heart_request["linear"] = body["args"]["new_size"] / (1024.0 ** 3)
     else:
-        heart_request["fixed"] = None                        
+        heart_request["fixed"] = None
     return heart_request
