@@ -30,7 +30,7 @@ digraph G {
         ]
 
         BillingOsAmqp [
-                label = "{Billing OS AMPQ}"
+                label = "{Billing OS AMQP}"
         ]
 
         NovaApi [
@@ -46,6 +46,7 @@ digraph G {
         ]
 
         BillingOsAmqp -> RabbitMQ
+        BillingOsAmqp -> NovaApi
         NovaApi -> RabbitMQ
         NovaCompute -> RabbitMQ
 
@@ -57,5 +58,4 @@ digraph G {
         edge [
                 arrowhead = "none"
         ]
-
 }

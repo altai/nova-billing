@@ -17,7 +17,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Starter script for Billing OS AMPQ binder."""
+"""Starter script for Billing OS AMQP binder."""
 
 import eventlet
 eventlet.monkey_patch()

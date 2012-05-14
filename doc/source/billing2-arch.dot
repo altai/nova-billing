@@ -29,7 +29,7 @@ digraph G {
                 ]
  
                 BillingOsAmqp [
-                    label = "{Billing OS AMPQ}"
+                    label = "{Billing OS AMQP}"
                 ]
         }
 
