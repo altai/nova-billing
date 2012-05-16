@@ -1,0 +1,131 @@
+[
+    {
+        "status": 400, 
+        "response_body": null, 
+        "uri": "/v2/cost_center?name=center+34&migrate_id=1", 
+        "request_body": null, 
+        "method": "DELETE"
+    }, 
+    {
+        "status": 200, 
+        "response_body": [
+            {
+                "id": 1, 
+                "name": "center 34"
+            }, 
+            {
+                "id": 2, 
+                "name": "center 45"
+            }
+        ], 
+        "uri": "/v2/cost_center", 
+        "request_body": null, 
+        "method": "GET"
+    }, 
+    {
+        "status": 204, 
+        "response_body": null, 
+        "uri": "/v2/cost_center?id=1&migrate_name=center+45", 
+        "request_body": null, 
+        "method": "DELETE"
+    }, 
+    {
+        "status": 200, 
+        "response_body": [
+            {
+                "id": 2, 
+                "name": "center 45"
+            }
+        ], 
+        "uri": "/v2/cost_center", 
+        "request_body": null, 
+        "method": "GET"
+    }, 
+    {
+        "status": 200, 
+        "response_body": [
+            {
+                "cost_center_id": 2, 
+                "name": "systenant", 
+                "id": 1
+            }, 
+            {
+                "cost_center_id": 2, 
+                "name": "tenant 66", 
+                "id": 2
+            }, 
+            {
+                "cost_center_id": 2, 
+                "name": "tenant 45", 
+                "id": 3
+            }
+        ], 
+        "uri": "/v2/account", 
+        "request_body": null, 
+        "method": "GET"
+    }, 
+    {
+        "status": 200, 
+        "response_body": [
+            {
+                "account_id": 1, 
+                "rtype": "nova/instance", 
+                "cost_center_id": 2, 
+                "parent_id": null, 
+                "attrs": {
+                    "instance_type": "m1.small"
+                }, 
+                "id": 1, 
+                "name": "16"
+            }, 
+            {
+                "account_id": 1, 
+                "rtype": "local_gb", 
+                "cost_center_id": 2, 
+                "parent_id": 1, 
+                "attrs": {}, 
+                "id": 2, 
+                "name": null
+            }, 
+            {
+                "account_id": 1, 
+                "rtype": "memory_mb", 
+                "cost_center_id": 2, 
+                "parent_id": 1, 
+                "attrs": {}, 
+                "id": 3, 
+                "name": null
+            }, 
+            {
+                "account_id": 1, 
+                "rtype": "vcpus", 
+                "cost_center_id": 2, 
+                "parent_id": 1, 
+                "attrs": {}, 
+                "id": 4, 
+                "name": null
+            }, 
+            {
+                "account_id": 1, 
+                "rtype": "nova/volume", 
+                "cost_center_id": 2, 
+                "parent_id": null, 
+                "attrs": {}, 
+                "id": 5, 
+                "name": "12"
+            }, 
+            {
+                "account_id": 1, 
+                "rtype": "nova/volume", 
+                "cost_center_id": 2, 
+                "parent_id": null, 
+                "attrs": {}, 
+                "id": 6, 
+                "name": "3"
+            }
+        ], 
+        "uri": "/v2/resource", 
+        "request_body": null, 
+        "method": "GET"
+    }
+]

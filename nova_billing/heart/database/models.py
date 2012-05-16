@@ -36,10 +36,17 @@ class BillingBase(object):
             setattr(self, key, value)
 
 
+class CostCenter(db.Model, BillingBase):
+    __tablename__ = "cost_center"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(255), nullable=False)
+
+
 class Account(db.Model, BillingBase):
     __tablename__ = "account"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False)
+    cost_center_id = db.Column(db.Integer, db.ForeignKey("cost_center.id"), nullable=True)
 
 
 class Resource(db.Model, BillingBase):
@@ -48,9 +55,10 @@ class Resource(db.Model, BillingBase):
     name = db.Column(db.String(255))
     rtype = db.Column(db.String(TypeLength), nullable=False)
     account_id = db.Column(db.Integer, db.ForeignKey("account.id"), nullable=False)
+    cost_center_id = db.Column(db.Integer, db.ForeignKey("cost_center.id"), nullable=True)
     parent_id = db.Column(db.Integer, db.ForeignKey("resource.id"))
     attrs = db.Column(db.UnicodeText)
-    
+
     def get_attrs(self):
         if self.attrs:
             try:
@@ -67,7 +75,7 @@ class Segment(db.Model, BillingBase):
     __tablename__ = "segment"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     resource_id = db.Column(db.Integer, db.ForeignKey("resource.id"), nullable=False)
-    
+
     # positive: linear (must multiply on time)
     # zero: free of charge
     # negative: fixed cost

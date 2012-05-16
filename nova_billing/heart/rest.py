@@ -30,7 +30,7 @@ from . import app
 
 from .database import api as db_api
 from .database import db
-from .database.models import Account, Resource, Segment, Tariff
+from .database.models import BillingBase, CostCenter, Account, Resource, Segment, Tariff
 
 from nova_billing import utils
 from nova_billing.version import version_string
@@ -65,23 +65,26 @@ def check_and_get_datatime(rj):
     return ret
 
 
-@app.route("/version")
-def get_version():
-    ans_dict = {
-        "version": version_string(),
-        "application": "nova-billing",
-        "links": [
-            [{
-                "href": "http://%s:%s/%s" %
-                    (request.environ["SERVER_NAME"],
-                     request.environ["SERVER_PORT"],
-                     url),
-                "rel": "self",
-            } for url in "bill", "resource", "account", "tariff" ],
-        ],
-    }
+def get_request_version():
+    return request.environ.get("PATH_INFO", "")[1:3]
 
-    return jsonify(ans_dict)
+
+def account_get_or_create(rj):
+    check_attrs(rj, ("rtype", ))
+    account_name = rj.get("account_name", rj.get("account", None))
+    if not account_name:
+        resource = db_api.resource_find(rj["rtype"], rj.get("name", None))
+        if not resource:
+            raise BadRequest(description="account must be specified")
+        account_id = resource.account_id
+        cost_center_id = resource.cost_center_id
+    else:
+        account = db_api.account_get_or_create(
+            account_name, rj.get("cost_center_name", None))
+        account_id = account.id
+        cost_center_id = account.cost_center_id
+
+    return account_id, cost_center_id
 
 
 def get_period():
@@ -130,34 +133,155 @@ def get_period():
     return period_start, period_end
 
 
-@app.route("/bill")
-def get_bill():
-    account_name = request.args.get("account", None)
-    if account_name:
-        account = Account.query.filter_by(name=account_name).first()
-        if account == None:
-            raise NotFound()
-        account_id = account.id
-    else:
-        account_id = None
+class BillingBaseExt(object):
 
+    @classmethod
+    def filter_by_id_name(cls):
+        args = request.args
+        fld_id = "%s_id" % cls.__tablename__
+        value = args.get(fld_id, None)
+        if value:
+            return {fld_id: value}
+        fld_name = "%s_name" % cls.__tablename__
+        value = args.get(fld_name)
+        if value:
+            obj = cls.query.filter_by(name=value).first()
+            if obj == None:
+                raise NotFound(
+                    "Requested %s=%s is not found" % (fld_name, value))
+            return {fld_id: obj.id}
+        return {}
+
+    @classmethod
+    def query_filtered(cls):
+        filter = dict(((fld, request.args[fld])
+                       for fld in cls.fld_list()
+                       if fld in request.args))
+        res = cls.query
+        if filter:
+            res = res.filter_by(**filter)
+        return res
+
+    def to_json(self):
+        fld_list = self.fld_list()
+        return to_json(
+            dict(((fld, getattr(self, fld)) for fld in fld_list))
+            )
+
+    @classmethod
+    def list_to_json(cls, obj_list):
+        fld_list = cls.fld_list()
+        return to_json([
+                dict(((fld, getattr(obj, fld)) for fld in fld_list))
+                for obj in obj_list
+                ])
+
+    @classmethod
+    def fld_list(cls):
+        fld_list = cls._fld_list[0]
+        if get_request_version() == "v2":
+            fld_list += cls._fld_list[1]
+        return fld_list
+
+
+class AccountExt(object):
+
+    @classmethod
+    def query_filtered(cls):
+        res = super(Account, cls).query_filtered()
+        if get_request_version() == "v2":
+            filter = CostCenter.filter_by_id_name()
+            if filter:
+                res = res.filter_by(**filter)
+        return res
+
+
+class ResourceExt(object):
+
+    @classmethod
+    def query_filtered(cls):
+        res = super(Resource, cls).query_filtered()
+        filter = Account.filter_by_id_name()
+        if filter:
+            res = res.filter_by(**filter)
+        if get_request_version() == "v2":
+            filter = CostCenter.filter_by_id_name()
+            if filter:
+                res = res.filter_by(**filter)
+        return res
+
+
+def copy_methods(src, dest):
+    for name in src.__dict__:
+        fld = getattr(src, name)
+        if callable(fld):
+            setattr(dest, name, src.__dict__[name])
+
+
+copy_methods(BillingBaseExt, BillingBase)
+copy_methods(AccountExt, Account)
+copy_methods(ResourceExt, Resource)
+
+Account._fld_list = [("id", "name"), ("cost_center_id", )]
+CostCenter._fld_list = [(), ("id", "name")]
+Resource._fld_list = [("id", "name", "rtype", "parent_id", "account_id"), ("cost_center_id", )]
+
+
+@app.route("/version")
+def version_get():
+    def links(base_url, url_list):
+        return [{
+            "href": "%s/%s" % (base_url, url),
+            "rel": "self",
+        } for url in url_list]
+
+    start_url = "http://%s:%s" % (request.environ["SERVER_NAME"], request.environ["SERVER_PORT"])
+    return jsonify({"versions": [
+        {
+            "status": "CURRENT",
+            "id": "v2",
+            "links": links("%s/v2" % start_url,
+                           ("bill", "resource", "account", "tariff", "cost_center"))
+        },
+        {
+            "status": "SUPPORTED",
+            "id": "v1",
+            "links": links("%s/v1" % start_url,
+                           ("bill", "resource", "account", "tariff"))
+        },
+    ]})
+
+
+@app.route("/v1/bill")
+@app.route("/v2/report")
+def report_get():
     period_start, period_end = get_period()
+    resource_filter = Account.filter_by_id_name()
+    if get_request_version() == "v2":
+        accounts_key = "accounts"
+        if not resource_filter:
+            resource_filter = CostCenter.filter_by_id_name()
+    else:
+        accounts_key = "bill"
     total_statistics = db_api.bill_on_interval(
-        period_start, period_end, account_id)
+        period_start, period_end, resource_filter)
 
     accounts = db_api.account_map()
+
     ans_dict = {
         "period_start": period_start,
         "period_end": period_end,
-        "bill": [{
-            "id": key, "name": accounts.get(key, None), 
+        accounts_key: [{
+            "id": key, "name": accounts.get(key, None),
             "resources": value
         } for key, value in total_statistics.iteritems()],
     }
     return to_json(ans_dict)
 
 
-def process_event(rsrc, parent_id, account_id, event_datetime, tariffs):
+def process_event(rsrc, parent_id,
+                  account_id, cost_center_id,
+                  event_datetime, tariffs):
     """
     linear - saved as a non-negative cost
     fixed - saved with opposite sign (as a non-positive cost)
@@ -166,7 +290,7 @@ def process_event(rsrc, parent_id, account_id, event_datetime, tariffs):
     if not "rtype" in rsrc:
         return
     rsrc_obj = db_api.resource_get_or_create(
-        account_id, parent_id,
+        account_id, cost_center_id, parent_id,
         rsrc["rtype"], rsrc.get("name", None))
     rsrc_id = rsrc_obj.id
 
@@ -199,15 +323,15 @@ def process_event(rsrc, parent_id, account_id, event_datetime, tariffs):
 
     for child in rsrc.get("children", ()):
         process_event(child, rsrc_id,
-                         account_id, event_datetime,
-                         tariffs)
+                      account_id, cost_center_id,
+                      event_datetime, tariffs)
 
 
-def process_resource(rsrc, parent_id, account_id):
+def process_resource(rsrc, parent_id, account_id, cost_center_id):
     if not "rtype" in rsrc:
         return
     rsrc_obj = db_api.resource_get_or_create(
-        account_id, parent_id,
+        account_id, cost_center_id, parent_id,
         rsrc["rtype"], rsrc.get("name", None))
     rsrc_id = rsrc_obj.id
 
@@ -220,44 +344,36 @@ def process_resource(rsrc, parent_id, account_id):
         db.session.merge(rsrc_obj)
 
     for child in rsrc.get("children", ()):
-        process_resource(child, rsrc_id, account_id)
+        process_resource(child, rsrc_id, account_id, cost_center_id)
 
 
-@app.route("/event", methods=["POST"])
-def post_event():
+@app.route("/v1/event", methods=["POST"])
+@app.route("/v2/event", methods=["POST"])
+def event_create():
     rj = request_json()
-    check_attrs(rj, ("rtype", ))
     rj_datetime = check_and_get_datatime(rj)
-    try:
-        account_name = rj["account"]
-    except KeyError:
-        resource = db_api.resource_find(rj["rtype"], rj.get("name", None))
-        if not resource:
-            raise BadRequest(description="account must be specified")
-        account_id = resource.account_id
-        account_name = resource.name
-    else:
-        account = db_api.account_get_or_create(account_name)
-        account_id = account.id
+    account_id, cost_center_id = account_get_or_create(rj)
 
     tariffs = db_api.tariff_map()
-    process_event(rj, None,  account_id, rj_datetime, tariffs)
+    process_event(rj, None,  account_id, cost_center_id, rj_datetime, tariffs)
 
     db.session.commit()
-    return to_json({"account": account_name,
+    return to_json({"account_id": account_id,
                     "rtype": rj["rtype"],
                     "datetime": rj_datetime,
                     "name": rj.get("name", None)})
 
 
-@app.route("/tariff", methods=["GET"])
-def get_tariff():
+@app.route("/v1/tariff", methods=["GET"])
+@app.route("/v2/tariff", methods=["GET"])
+def tariff_get():
     tariffs = db_api.tariff_map()
     return to_json(tariffs)
 
 
-@app.route("/tariff", methods=["POST"])
-def change_tariff():
+@app.route("/v1/tariff", methods=["POST"])
+@app.route("/v2/tariff", methods=["POST"])
+def tariff_update():
     rj = request_json()
     check_attrs(rj, ("values", ))
     rj_datetime = check_and_get_datatime(rj)
@@ -281,51 +397,122 @@ def change_tariff():
     return to_json(new_tariffs)
 
 
-@app.route("/account", methods=["GET"])
-def get_account():
-    return to_json([
-        {"id": key, "name": value}
-        for key, value in db_api.account_map().iteritems()])
+@app.route("/v1/account", methods=["GET"])
+@app.route("/v2/account", methods=["GET"])
+def account_get():
+    res = Account.query_filtered()
+    return Account.list_to_json(res.all())
 
 
-@app.route("/resource", methods=["GET"])
-def get_resource():
-    res = Resource.query
-    filter = dict(((fld, request.args[fld]) 
-        for fld in ("account_id", "name", "id", "rtype", "parent_id")
-        if fld in request.args))
-    if filter:
-        res = res.filter_by(**filter)
-    return to_json([
-        {"id": obj.id,
-         "name": obj.name,
-         "rtype": obj.rtype,
-         "account_id": obj.account_id,
-         "parent_id": obj.parent_id,
-         "attrs": obj.get_attrs(),
-        } for obj in res.all()
-    ])
+@app.route("/v1/resource", methods=["GET"])
+@app.route("/v2/resource", methods=["GET"])
+def resource_get():
+    res = Resource.query_filtered()
+    fld_list = Resource.fld_list()
+
+    def get_rsrc_dict(obj):
+        rsrc_dict = dict(((fld, getattr(obj, fld)) for fld in fld_list))
+        rsrc_dict["attrs"] = obj.get_attrs()
+        return rsrc_dict
+
+    return to_json([get_rsrc_dict(obj) for obj in res.all()])
 
 
-@app.route("/resource", methods=["POST"])
-def post_resource():
+@app.route("/v1/resource", methods=["POST"])
+def resource_create():
     rj = request_json()
-    check_attrs(rj, ("rtype", ))
-    try:
-        account_name = rj["account"]
-    except KeyError:
-        resource = db_api.resource_find(rj["rtype"], rj.get("name", None))
-        if not resource:
-            raise BadRequest(description="account must be specified")
-        account_id = resource.account_id
-        account_name = resource.name
-    else:
-        account = db_api.account_get_or_create(account_name)
-        account_id = account.id
+    account_id, cost_center_id = account_get_or_create(rj)
 
-    process_resource(rj, None,  account_id)
+    process_resource(rj, None, account_id, cost_center_id)
 
     db.session.commit()
-    return to_json({"account": account_name,
+    return to_json({"account_id": account_id,
                     "rtype": rj["rtype"],
                     "name": rj.get("name", None)})
+
+
+def obj_update_name(cls):
+    rj = request_json()
+    check_attrs(rj, ("name",))
+    ret = cls.query_filtered()
+    if ret.count() != 1:
+        raise BadRequest(
+            "Exactly one %s must be specified."
+            % cls.__tablename__)
+    obj = ret.first()
+    obj.name = rj["name"]
+    db.session.merge(obj)
+    db.session.commit()
+    return obj.to_json()
+
+
+@app.route("/v2/resource", methods=["PUT"])
+def resource_update():
+    return obj_update_name(Resource)
+
+
+@app.route("/v2/account", methods=["POST"])
+def account_create():
+    rj = request_json()
+    check_attrs(rj, ("name", "cost_center_name"))
+    obj = db_api.account_get_or_create(
+        rj["name"], rj["cost_center_name"])
+    return obj.to_json()
+
+
+@app.route("/v2/account", methods=["PUT"])
+def account_update():
+    return obj_update_name(Account)
+
+
+@app.route("/v2/cost_center", methods=["GET"])
+def cost_center_get():
+    res = CostCenter.query_filtered()
+    return CostCenter.list_to_json(res.all())
+
+
+@app.route("/v2/cost_center", methods=["POST"])
+def cost_center_create():
+    rj = request_json()
+    check_attrs(rj, ("name", ))
+    obj = db_api.cost_center_get_or_create(rj["name"])
+    return obj.to_json()
+
+
+@app.route("/v2/cost_center", methods=["PUT"])
+def cost_center_update():
+    return obj_update_name(CostCenter)
+
+
+@app.route("/v2/cost_center", methods=["DELETE"])
+def cost_center_delete():
+    res = CostCenter.query_filtered()
+    if res.count() != 1:
+        raise BadRequest("Exactly one cost center to delete must be specified.")
+    to_delete = res.first()
+    to_migrate = None
+    filter = {}
+    for fld in CostCenter.fld_list():
+        key = "migrate_%s" % fld
+        if key in request.args:
+            filter[fld] = request.args[key]
+    if filter:
+        res = CostCenter.query.filter_by(**filter)
+        if res.count() == 1:
+            to_migrate = res.first()
+    if not to_migrate:
+        raise BadRequest("Exactly one cost center to migrate must be specified.")
+    if to_delete.id == to_migrate.id:
+        raise BadRequest("Cost centers for delete and migrate are the same.")
+
+    connection = db.session.connection()
+    for table in Resource.__tablename__, Account.__tablename__:
+        connection.execute(
+            "update %(table)s"
+            " set cost_center_id=?"
+            " where cost_center_id=?" %
+            {"table": table},
+            to_migrate.id, to_delete.id)
+    db.session.delete(to_delete)
+    db.session.commit()
+    return Response(status=204)

@@ -58,12 +58,12 @@ class TestCase(tests.TestCase):
         self.day = 1
         self.requests = []
         service = amqp.Service()
-        
+
         self.stubs.Set(service.billing_heart, "event", self.fake_event)
         self.stubs.Set(service, "get_event_datetime", self.fake_get_event_datetime)
         self.stubs.Set(instances, "get_instance_flavor", self.fake_get_instance_flavor)
 
-        json_in = self.json_load_from_file("os_amqp.instances.in.json") 
+        json_in = self.json_load_from_file("os_amqp/instances.in.json")
         run_instance_body = json_in["run"]
         any_instance_body = json_in["any"]
         self.flavor = run_instance_body["args"]["request_spec"]["instance_type"]
@@ -81,23 +81,23 @@ class TestCase(tests.TestCase):
             service.process_event(any_instance_body, None)
 
         self.stubs.UnsetAll()
-        self.json_check_with_file(self.requests, 
-            "os_amqp.instances.out.json")
+        self.json_check_with_file(self.requests,
+            "os_amqp/instances.out.json")
 
     def test_amqp_local_volumes(self):
         self.day = 1
         self.requests = []
         service = amqp.Service()
-        
+
         self.stubs.Set(service.billing_heart, "event", self.fake_event)
         self.stubs.Set(service, "get_event_datetime", self.fake_get_event_datetime)
         self.stubs.Set(instances, "get_instance_flavor", self.fake_get_instance_flavor)
 
-        json_in = self.json_load_from_file("os_amqp.local_volumes.in.json")
-        
+        json_in = self.json_load_from_file("os_amqp/local_volumes.in.json")
+
         for event in json_in:
             service.process_event(event, None)
 
         self.stubs.UnsetAll()
         self.json_check_with_file(self.requests,
-            "os_amqp.local_volumes.out.json")
+            "os_amqp/local_volumes.out.json")

@@ -6,7 +6,7 @@
         "_context_request_id": "29615116-ddd0-4a20-8018-ef5f90f8bdf3", 
         "args": {
             "volume_id": 12,
-            "size": 1024 
+            "size": 1099511627776 
         }, 
         "_context_auth_token": null, 
         "_context_user_id": "admin", 
@@ -25,7 +25,7 @@
         "_context_request_id": "29615116-ddd0-4a20-8018-ef5f90f8bdf3", 
         "args": {
             "volume_id": 12,
-            "new_size": 20 
+            "new_size": 21474836480 
         }, 
         "_context_auth_token": null, 
         "_context_user_id": "admin", 
@@ -44,7 +44,7 @@
         "_context_request_id": "29615116-ddd0-4a20-8018-ef5f90f8bdf3", 
         "args": {
             "volume_id": 3,
-            "size": 1024 
+            "size": 1099511627776 
         }, 
         "_context_auth_token": null, 
         "_context_user_id": "admin", 
@@ -63,7 +63,7 @@
         "_context_request_id": "29615116-ddd0-4a20-8018-ef5f90f8bdf3", 
         "args": {
             "volume_id": 3,
-            "new_size": 20 
+            "new_size": 21474836480 
         }, 
         "_context_auth_token": null, 
         "_context_user_id": "admin", 

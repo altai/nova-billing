@@ -1,0 +1,44 @@
+[
+    {
+        "status": 200, 
+        "response_body": {
+            "cost_center_id": 1, 
+            "name": "systenant", 
+            "id": 1
+        }, 
+        "uri": "/v2/account", 
+        "request_body": {
+            "cost_center_name": "center 34", 
+            "name": "systenant"
+        }, 
+        "method": "POST"
+    }, 
+    {
+        "status": 200, 
+        "response_body": {
+            "cost_center_id": 1, 
+            "name": "tenant 66", 
+            "id": 2
+        }, 
+        "uri": "/v2/account", 
+        "request_body": {
+            "cost_center_name": "center 34", 
+            "name": "tenant 66"
+        }, 
+        "method": "POST"
+    }, 
+    {
+        "status": 200, 
+        "response_body": {
+            "cost_center_id": 2, 
+            "name": "tenant 45", 
+            "id": 3
+        }, 
+        "uri": "/v2/account", 
+        "request_body": {
+            "cost_center_name": "center 45", 
+            "name": "tenant 45"
+        }, 
+        "method": "POST"
+    }
+]

@@ -1,0 +1,33 @@
+[
+    {
+        "status": 200, 
+        "response_body": [
+            {
+                "id": 1, 
+                "name": "center 34"
+            }
+        ], 
+        "uri": "/v2/cost_center?name=center+34", 
+        "request_body": null, 
+        "method": "GET"
+    }, 
+    {
+        "status": 200, 
+        "response_body": [
+            {
+                "id": 2, 
+                "name": "center 45"
+            }
+        ], 
+        "uri": "/v2/cost_center?id=2", 
+        "request_body": null, 
+        "method": "GET"
+    }, 
+    {
+        "status": 200, 
+        "response_body": [], 
+        "uri": "/v2/cost_center?id=222", 
+        "request_body": null, 
+        "method": "GET"
+    }
+]

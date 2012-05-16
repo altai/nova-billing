@@ -44,16 +44,19 @@ class TestCase(unittest.TestCase):
             "rt") as json_file:
             return json.load(json_file)
 
+    @staticmethod
+    def json_save_to_file(data, filename):
+        with open(os.path.join(os.path.dirname(
+                    os.path.abspath(__file__)), filename),
+                  "wt") as json_file:
+            json.dump(data, json_file, indent=4)
+
     #Set it to True for json out files regeneration
     write_json = False
-    
+
     def json_check_with_file(self, data, filename):
         if self.write_json:
-            with open(os.path.join(os.path.dirname(
-                os.path.abspath(__file__)), filename),
-            "wt") as json_file:
-                json.dump(data, json_file, indent=4)
+            self.json_save_to_file(data, filename)
         else:
-            self.assertEqual(data, 
+            self.assertEqual(data,
                              self.json_load_from_file(filename))
-        

@@ -1,0 +1,53 @@
+[
+    {
+        "status": 400, 
+        "response_body": null, 
+        "uri": "/v2/resource", 
+        "request_body": {
+            "name": "hello"
+        }, 
+        "method": "PUT"
+    }, 
+    {
+        "status": 200, 
+        "response_body": [], 
+        "uri": "/v2/resource?name=hello", 
+        "request_body": null, 
+        "method": "GET"
+    }, 
+    {
+        "status": 200, 
+        "response_body": {
+            "account_id": 1, 
+            "rtype": "nova/instance", 
+            "cost_center_id": 1, 
+            "parent_id": null, 
+            "id": 1, 
+            "name": "hello"
+        }, 
+        "uri": "/v2/resource?id=1", 
+        "request_body": {
+            "name": "hello"
+        }, 
+        "method": "PUT"
+    }, 
+    {
+        "status": 200, 
+        "response_body": [
+            {
+                "account_id": 1, 
+                "rtype": "nova/instance", 
+                "cost_center_id": 1, 
+                "parent_id": null, 
+                "attrs": {
+                    "instance_type": "m1.small"
+                }, 
+                "id": 1, 
+                "name": "hello"
+            }
+        ], 
+        "uri": "/v2/resource?name=hello", 
+        "request_body": null, 
+        "method": "GET"
+    }
+]

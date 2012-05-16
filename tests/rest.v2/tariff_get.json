@@ -1,0 +1,15 @@
+[
+    {
+        "status": 200, 
+        "response_body": {
+            "memory_mb": 94670856.0, 
+            "vcpus": 31556952.0, 
+            "local_gb": 63113904.0, 
+            "nova/volume": 31556952.0, 
+            "glance/image": 31556952.0
+        }, 
+        "uri": "/v2/tariff", 
+        "request_body": null, 
+        "method": "GET"
+    }
+]

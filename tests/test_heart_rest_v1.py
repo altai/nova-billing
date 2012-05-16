@@ -59,18 +59,21 @@ class TestCase(tests.TestCase):
     def assertSuccess(self, res):
         self.assertEqual(res.status_code / 100, 2)
 
-    def populate_db(self):
+    def create_tariffs(self):
         res = self.app_client.post(
-            "/tariff",
-            data=json.dumps(self.json_load_from_file("rest.tariff.in.json")),
+            "/v1/tariff",
+            data=json.dumps(self.json_load_from_file("rest.v1/tariff.in.json")),
             content_type=utils.ContentType.JSON)
         self.assertSuccess(res)
-        for filename in ("os_amqp.instances.out.json",
-                         "os_amqp.local_volumes.out.json"):
+
+    def populate_db(self):
+        self.create_tariffs()
+        for filename in ("os_amqp/instances.out.json",
+                         "os_amqp/local_volumes.out.json"):
             json_out = self.json_load_from_file(filename)
             for event in json_out:
                 res = self.app_client.post(
-                    "/event",
+                    "/v1/event",
                     data=json.dumps(event),
                     content_type=utils.ContentType.JSON)
                 self.assertSuccess(res)
@@ -78,45 +81,39 @@ class TestCase(tests.TestCase):
     def fake_now(self):
         return datetime.datetime(2011, 1, 1)
 
-    def test_version(self):
-        res = self.app_client.get("/version")
-        self.assertSuccess(res)
-
     def test_tariff(self):
-        res = self.app_client.post(
-            "/tariff",
-            data=json.dumps(self.json_load_from_file("rest.tariff.in.json")),
-            content_type=utils.ContentType.JSON)
+        self.create_tariffs()
+        res = self.app_client.get("/v1/tariff")
         self.assertSuccess(res)
-        self.json_check_with_file(json.loads(res.data), 
-            "rest.tariff.out.json")
+        self.json_check_with_file(json.loads(res.data),
+            "rest.v1/tariff.out.json")
 
     def test_account(self):
         self.populate_db()
-        res = self.app_client.get("/account")
+        res = self.app_client.get("/v1/account")
         self.assertSuccess(res)
-        self.json_check_with_file(json.loads(res.data), 
-                         "rest.account.out.json")
-    
+        self.json_check_with_file(json.loads(res.data),
+                         "rest.v1/account.out.json")
+
     def test_resource(self):
         self.populate_db()
-        res = self.app_client.get("/resource")
+        res = self.app_client.get("/v1/resource")
         self.assertSuccess(res)
-        self.json_check_with_file(json.loads(res.data), 
-            "rest.resource.out.json")
+        self.json_check_with_file(json.loads(res.data),
+            "rest.v1/resource.out.json")
 
     def test_resource_filter(self):
         self.populate_db()
-        res = self.app_client.get("/resource?rtype=nova/instance")
-        self.assertSuccess(res)    
-        self.json_check_with_file(json.loads(res.data), 
-            "rest.resource_filter.out.json")
+        res = self.app_client.get("/v1/resource?rtype=nova/instance")
+        self.assertSuccess(res)
+        self.json_check_with_file(json.loads(res.data),
+            "rest.v1/resource_filter.out.json")
 
     def test_bill(self):
-        self.stubs.Set(utils, "now", self.fake_now)        
+        self.stubs.Set(utils, "now", self.fake_now)
         self.populate_db()
-        res = self.app_client.get("/bill")
+        res = self.app_client.get("/v1/bill")
         self.assertSuccess(res)
-        self.json_check_with_file(json.loads(res.data), 
-            "rest.bill.out.json")
+        self.json_check_with_file(json.loads(res.data),
+            "rest.v1/bill.out.json")
         self.stubs.UnsetAll()

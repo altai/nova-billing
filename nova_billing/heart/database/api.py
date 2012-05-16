@@ -26,16 +26,16 @@ from datetime import datetime
 from sqlalchemy.sql import func, and_, or_
 from sqlalchemy.sql.expression import text
 
-from .models import Account, Resource, Segment, Tariff
+from .models import CostCenter, Account, Resource, Segment, Tariff
 from . import db
 
 from nova_billing import utils
 
 
-def bill_on_interval(period_start, period_stop, account_id=None):
+def bill_on_interval(period_start, period_stop, filter={}):
     """
-    Retrieve statistics for the given interval [``period_start``, ``period_stop``]. 
-    ``account_id=None`` means all accounts.
+    Retrieve statistics for the given interval [``period_start``, ``period_stop``].
+    ``filter`` is a dict with possible keys account_id and cost_center_id.
 
     Example of the returned value:
 
@@ -44,30 +44,30 @@ def bill_on_interval(period_start, period_stop, account_id=None):
         {
             1: [
                 {
-                    "name": "16", 
-                    "rtype": "nova/instance", 
-                    "created_at": "2011-01-02T00:00:00Z", 
-                    "destroyed_at": null, 
-                    "parent_id": null, 
-                    "cost": 0.0, 
+                    "name": "16",
+                    "rtype": "nova/instance",
+                    "created_at": "2011-01-02T00:00:00Z",
+                    "destroyed_at": null,
+                    "parent_id": null,
+                    "cost": 0.0,
                     "id": 1
-                }, 
+                },
                 {
-                    "name": null, 
-                    "rtype": "local_gb", 
-                    "created_at": "2011-01-02T00:00:00Z", 
-                    "destroyed_at": null, 
-                    "parent_id": 1, 
-                    "cost": 1200.0, 
+                    "name": null,
+                    "rtype": "local_gb",
+                    "created_at": "2011-01-02T00:00:00Z",
+                    "destroyed_at": null,
+                    "parent_id": 1,
+                    "cost": 1200.0,
                     "id": 2
-                }, 
+                },
                 {
-                    "name": null, 
-                    "rtype": "memory_mb", 
-                    "created_at": "2011-01-02T00:00:00Z", 
-                    "destroyed_at": null, 
-                    "parent_id": 1, 
-                    "cost": 380928.0, 
+                    "name": null,
+                    "rtype": "memory_mb",
+                    "created_at": "2011-01-02T00:00:00Z",
+                    "destroyed_at": null,
+                    "parent_id": 1,
+                    "cost": 380928.0,
                     "id": 3
                 }
             ]
@@ -75,14 +75,18 @@ def bill_on_interval(period_start, period_stop, account_id=None):
 
     :returns: a dictionary where keys are account ids and values are billing lists.
     """
+    def apply_filter(result):
+        for attr in "account_id", "cost_center_id":
+            if attr in filter:
+                result = result.filter(getattr(Resource, attr) == attr)
+
     result = (db.session.query(Segment, Resource).
                 join(Resource).
                 filter(Segment.begin_at < period_stop).
                 filter(or_(Segment.end_at > period_start,
                            Segment.end_at == None)))
-    if account_id:
-        result = result.filter(Resource.account_id == account_id)
-    
+    apply_filter(result)
+
     retval = {}
     rsrc_by_id = {}
     now = datetime.utcnow()
@@ -117,8 +121,7 @@ def bill_on_interval(period_start, period_stop, account_id=None):
         filter(Segment.begin_at < period_stop).
         filter(or_(Segment.end_at > period_start,
                    Segment.end_at == None)))
-    if account_id:
-        result = result.filter(Resource.account_id == account_id)
+    apply_filter(result)
 
     for row in result:
         rsrc_descr = rsrc_by_id.get(row.id, None)
@@ -131,24 +134,39 @@ def bill_on_interval(period_start, period_stop, account_id=None):
     return retval
 
 
-def account_get_or_create(name):
-    obj = Account.query.filter_by(name=name).first()
+def cost_center_get_or_create(name):
+    obj = CostCenter.query.filter_by(name=name).first()
     if obj == None:
-        obj = Account(name=name)
+        obj = CostCenter(name=name)
         db.session.add(obj)
         db.session.commit()
     return obj
 
 
-def resource_get_or_create(account_id, parent_id, rtype, name):
+def account_get_or_create(name, cost_center_name=None):
+    obj = Account.query.filter_by(name=name).first()
+    if obj == None:
+        if cost_center_name:
+            cost_center_id = cost_center_get_or_create(
+                cost_center_name).id
+        else:
+            cost_center_id = None
+        obj = Account(name=name, cost_center_id=cost_center_id)
+        db.session.add(obj)
+        db.session.commit()
+    return obj
+
+
+def resource_get_or_create(account_id, cost_center_id, parent_id, rtype, name):
     obj = Resource.query.filter_by(
         account_id=account_id,
         parent_id=parent_id,
         rtype=rtype,
         name=name).first()
     if obj == None:
-        obj = Resource( 
+        obj = Resource(
             account_id=account_id,
+            cost_center_id=cost_center_id,
             parent_id=parent_id,
             rtype=rtype,
             name=name)
@@ -191,7 +209,7 @@ def tariffs_migrate(old_tariffs, new_tariffs, event_datetime):
         old_t = old_tariffs.get(rtype, 1.0)
         if old_t < 0:
             old_t = 1.0
-        
+
         connection.execute(
             "insert into %(segment)s"
             " (resource_id, cost, begin_at, end_at)"
@@ -209,7 +227,7 @@ def tariffs_migrate(old_tariffs, new_tariffs, event_datetime):
     changed_keys = new_tariffs.keys()
     max_args = 32
     for i in xrange(1 + len(changed_keys) / max_args):
-        partial_keys = changed_keys[i * max_args:(i + 1) * max_args] 
+        partial_keys = changed_keys[i * max_args:(i + 1) * max_args]
         connection.execute(
             "update %(segment)s"
             " set end_at = ?"
