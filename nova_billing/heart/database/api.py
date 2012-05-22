@@ -79,17 +79,17 @@ def bill_on_interval(period_start, period_stop, filter={}):
     if now <= period_start:
         return {}
 
-    def apply_filter(result):
+    def apply_filter(res):
         for attr in "account_id", "cost_center_id":
             if attr in filter:
-                result = result.filter(getattr(Resource, attr) == attr)
+                res = res.filter(getattr(Resource, attr) == filter[attr])
+        return res
 
-    result = (db.session.query(Segment, Resource).
+    result = apply_filter(db.session.query(Segment, Resource).
                 join(Resource).
                 filter(Segment.begin_at < period_stop).
                 filter(or_(Segment.end_at > period_start,
                            Segment.end_at == None)))
-    apply_filter(result)
 
     retval = {}
     rsrc_by_id = {}
@@ -114,7 +114,7 @@ def bill_on_interval(period_start, period_stop, filter={}):
         end_at = min(segment.end_at or now, period_stop)
         rsrc_descr["cost"] += utils.cost_add(segment.cost, begin_at, end_at)
 
-    result = (db.session.query(Segment,
+    result = apply_filter(db.session.query(Segment,
         func.min(Segment.begin_at).label("min_start"),
         func.max(Segment.begin_at).label("max_start"),
         func.max(Segment.end_at).label("max_stop"),
@@ -124,7 +124,6 @@ def bill_on_interval(period_start, period_stop, filter={}):
         filter(Segment.begin_at < period_stop).
         filter(or_(Segment.end_at > period_start,
                    Segment.end_at == None)))
-    apply_filter(result)
 
     for row in result:
         rsrc_descr = rsrc_by_id.get(row.id, None)

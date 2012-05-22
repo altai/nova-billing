@@ -142,5 +142,17 @@
         "uri": "/v2/report?account_id=1", 
         "request_body": null, 
         "method": "GET"
+    },
+    {
+        "status": 200, 
+        "response_body": {
+            "period_start": "2011-01-01T00:00:00Z", 
+            "accounts": [
+            ], 
+            "period_end": "2011-02-01T00:00:00Z"
+        }, 
+        "uri": "/v2/report?account_id=2", 
+        "request_body": null, 
+        "method": "GET"
     }
 ]

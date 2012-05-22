@@ -89,7 +89,7 @@ class TestCase(tests.TestCase):
                 self.assertEqual(
                     response_json,
                     test["response_body"],
-                    "incorrect response code for %s %s" % (method, uri))
+                    "incorrect response body for %s %s" % (method, uri))
         if self.write_json:
             self.json_save_to_file(test_list, filename)
 
