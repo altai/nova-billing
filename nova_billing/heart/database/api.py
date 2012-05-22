@@ -75,6 +75,10 @@ def bill_on_interval(period_start, period_stop, filter={}):
 
     :returns: a dictionary where keys are account ids and values are billing lists.
     """
+    now = datetime.utcnow()
+    if now <= period_start:
+        return {}
+
     def apply_filter(result):
         for attr in "account_id", "cost_center_id":
             if attr in filter:
@@ -89,7 +93,6 @@ def bill_on_interval(period_start, period_stop, filter={}):
 
     retval = {}
     rsrc_by_id = {}
-    now = datetime.utcnow()
     for segment, rsrc in result:
         if not retval.has_key(rsrc.account_id):
             retval[rsrc.account_id] = []
