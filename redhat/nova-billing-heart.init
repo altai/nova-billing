@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# nova-billing-heart	Nova Billing Heart Server
+# nova-billing-heart        Nova Billing Heart Server
 #
 # chkconfig: 2345 96 04
 #
@@ -28,11 +28,12 @@ prog="nova-billing-heart"
 pidfile=/var/run/nova-billing/$prog.pid
 binfile=/usr/bin/$prog
 lockfile=/var/lock/subsys/$prog
+daemonuser=nova-billing
 
 
 start() {
     echo -n "Starting $prog: "
-    start-stop-daemon --start --oknodo --background --chuid nova-billing --make-pidfile --pidfile $pidfile  --startas $binfile --
+    start-stop-daemon --start --oknodo --background --chuid $daemonuser --make-pidfile --pidfile $pidfile --startas $binfile --
     retval=$?
     [ $retval -eq 0 ] && success || failure
     echo
@@ -61,24 +62,24 @@ restart() {
 
 case "$1" in
     start)
-	start
-	;;
+        start
+        ;;
     stop)
-	stop
-	;;
+        stop
+        ;;
     status)
-	rh_status
-	;;
+        rh_status
+        ;;
     restart)
-	restart
-	;;
+        restart
+        ;;
     condrestart|try-restart)
         [ -f $lockfile ] && restart
         ;;
     *)
-	echo "Usage: service $(basename $0) {start|stop|status|restart|condrestart|try-restart}"
-	exit 1
-	;;
+        echo "Usage: service $(basename $0) {start|stop|status|restart|condrestart|try-restart}"
+        exit 1
+        ;;
 esac
 
 exit $?
