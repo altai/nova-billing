@@ -41,7 +41,7 @@ class ContentType(object):
 
 def total_seconds(td):
     """This function is added for portability
-    because timedelta.total_seconds() 
+    because timedelta.total_seconds()
     was introduced only in python 2.7."""
     return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
 
@@ -102,14 +102,12 @@ def cost_add(cost, begin_at, end_at):
 
 
 class GlobalConf(object):
-    _FLAGS = object()
     _conf = {
         "host": "127.0.0.1",
         "port": 8787,
         "log_dir": "/var/log/nova-billing",
         "log_format": "%(asctime)-15s:nova-billing:%(levelname)s:%(name)s:%(message)s",
         "log_level": "DEBUG",
-        "nova_conf": "nova.conf",
     }
 
     def load_from_file(self, filename):
@@ -119,26 +117,11 @@ class GlobalConf(object):
         except:
             pass
 
-    def load_nova_conf(self):
-        try:
-            from nova import flags
-            from nova import utils
-            utils.default_flagfile(self.nova_conf)
-            flags.FLAGS(sys.argv)
-            self._FLAGS = flags.FLAGS
-        except Exception:
-            LOG.exception("cannot load nova flags")
-
     def __getattr__(self, name):
         try:
             return self._conf[name]
         except KeyError:
-            pass
-        try:
-            return getattr(self._FLAGS, name)
-        except AttributeError:
-            pass
-        raise AttributeError(name)
+            raise AttributeError(name)
 
     def logging(self):
         try:
@@ -162,27 +145,84 @@ class GlobalConf(object):
         LOG.setLevel(level)
 
 
+CONFIG_FILE = "/etc/nova-billing/settings.json"
 global_conf = GlobalConf()
-global_conf.load_from_file("/etc/nova-billing/settings.json")
+global_conf.load_from_file(CONFIG_FILE)
 
 
-def get_heart_client():
-    return BillingHeartClient(
-        management_url=global_conf.billing_heart_url) 
+def get_service_from_catalog(catalog, service_type):
+    if catalog:
+        for service in catalog:
+            if service['type'] == service_type:
+                return service
+    return None
 
 
-def get_nova_client():
-    from novaclient.v1_1 import Client
-    client = Client("", "", "", "")
-    client.client.auth_token = global_conf.admin_token
-    client.client.management_url = global_conf.nova_url
-    return client
+def url_for(catalog, service_type, admin=False, endpoint_type="publicURL"):
+    service = get_service_from_catalog(catalog, service_type)
+    if service:
+        try:
+            if admin:
+                return service['endpoints'][0]['adminURL']
+            else:
+                return service['endpoints'][0][endpoint_type]
+        except (IndexError, KeyError):
+            raise exceptions.ServiceCatalogException(service_type)
+    else:
+        raise exceptions.ServiceCatalogException(service_type)
 
 
-def get_keystone_client():
-    from keystoneclient.v2_0 import client as keystone_client
-    client = keystone_client.Client(
-            endpoint=global_conf.keystone_url,
-            token=global_conf.admin_token)
-    return client
+class ClientsSingleton(object):
+    _clients = {}
 
+
+    def __init__(self, conf):
+        self.conf = conf
+
+    def __getattr__(self, name):
+        if name.startswith("_client_"):
+            raise AttributeError(name)
+        try:
+            return self._clients[name]
+        except KeyError:
+            ctor = getattr(self, "_client_%s" % name)
+            c = ctor()
+            self._clients[name] = c
+            return c
+
+    def _client_billing(self):
+        keystone = self.keystone
+        endpoint = keystone.service_catalog.url_for(
+            service_type="nova_billing")
+        return BillingHeartClient(
+            management_url=endpoint)
+
+    def _client_nova(self):
+        from novaclient.v1_1.client import Client
+        return Client(
+            self.conf.admin_user,
+            self.conf.admin_password,
+            self.conf.admin_tenant_name,
+            self.conf.auth_uri)
+
+    def _client_keystone(self):
+        from keystoneclient.v2_0.client import Client
+        return Client(
+            username=self.conf.admin_user,
+            password=self.conf.admin_password,
+            tenant_name=self.conf.admin_tenant_name,
+            auth_url=self.conf.auth_uri)
+
+    def _client_glance(self):
+        from glanceclient.v1.client import Client
+        keystone = self.keystone
+        endpoint = keystone.service_catalog.url_for(
+            service_type="image")
+        if endpoint.endswith("/"):
+            endpoint = endpoint[:-1]
+        if endpoint.endswith("/v1"):
+            endpoint = endpoint[:-3]
+        return Client(endpoint=endpoint, token=keystone.auth_token)
+
+
+clients = ClientsSingleton(global_conf)

@@ -22,13 +22,18 @@
 import eventlet
 eventlet.monkey_patch()
 
+import logging
+
 from nova_billing.os_amqp import amqp
 from nova_billing.utils import global_conf
 
 
+LOG = logging.getLogger(__name__)
+
+
 def main():
     global_conf.logging()
-    global_conf.load_nova_conf()
+    LOG.info("starting os_amqp")
     service = amqp.Service()
     service.start()
     service.wait()

@@ -1,4 +1,7 @@
-*.pyc
+*.py[co]
 .idea
+*.swp
+*~
+build
+dist
 *.egg-info
-

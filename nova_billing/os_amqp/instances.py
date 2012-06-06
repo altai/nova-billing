@@ -18,7 +18,7 @@
 
 import logging
 from nova_billing import utils
-from nova_billing.utils import global_conf
+from nova_billing.utils import global_conf, clients
 
 
 LOG = logging.getLogger(__name__)
@@ -28,18 +28,22 @@ class vm_states(object):
     ACTIVE = 0
     BUILDING = 1
     REBUILDING = 2
-    
+
     PAUSED = 3
     SUSPENDED = 4
     RESCUED = 5
     DELETED = 6
     STOPPED = 7
-    
+
     MIGRATING = 8
     RESIZING = 9
-    
+
     ERROR = 10
 
+
+instance_resources = ("local_gb", "memory_mb", "vcpus")
+
+flavor_map = {"disk": "local_gb", "ram": "memory_mb", "vcpus": "vcpus"}
 
 used_resources = {
     vm_states.ACTIVE: ("memory_mb", "vcpus", "local_gb"),
@@ -61,8 +65,6 @@ target_state = {
 }
 
 
-nova_client = utils.get_nova_client()
-
 # Cache flavors here
 flavors = {}
 no_flavor = {
@@ -70,7 +72,7 @@ no_flavor = {
     "local_gb": 0,
     "memory_mb": 0,
     "vcpus": 0,
-} 
+}
 
 def get_flavor(flavor_id):
     try:
@@ -78,23 +80,20 @@ def get_flavor(flavor_id):
     except KeyError:
         pass
     try:
-        flav = nova_client.flavors.get(flavor_id)
+        flav = clients.nova.flavors.get(flavor_id)
     except:
         return no_flavor
-    flav = {
-        "name": flav.name,
-        "local_gb": flav.disk,
-        "memory_mb": flav.ram,
-        "vcpus": flav.vcpus,
-    }
-    flavors[flavor_id] = flav
-    return flav
+    b_flav = {"name": flav.name}
+    for nova, billing in flavor_map.iteritems():
+        b_flav[billing] = getattr(flav, nova)
+    flavors[flavor_id] = b_flav
+    return b_flav
 
 
 def get_instance_flavor(instance_id):
     try:
         return get_flavor(
-            nova_client.servers.get(instance_id).flavor["id"])
+            clients.nova.servers.get(instance_id).flavor["id"])
     except:
         return no_flavor
 

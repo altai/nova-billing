@@ -1,8 +1,9 @@
+%global with_doc 0
+
 %if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 %endif
 
-%define mod_name nova_billing
 
 Name:             nova-billing
 Version:          2.1.0
@@ -17,7 +18,8 @@ Source0:          %{name}-%{version}.tar.gz
 BuildRoot:        %{_tmppath}/%{name}-%{version}-build
 BuildRequires:    python-devel python-setuptools make
 BuildArch:        noarch
-Requires:         python-flask python-flask-sqlalchemy
+Requires:         python-flask
+Requires:         python-flask-sqlalchemy
 Requires:         start-stop-daemon
 
 %description
@@ -28,7 +30,7 @@ protocol, and the Redis KVS.
 
 This package contains the nova billing server.
 
-
+%if 0%{?with_doc}
 %package doc
 Summary:        Documentation for %{name}
 Group:          Documentation
@@ -37,7 +39,7 @@ BuildRequires:  python-sphinx make
 
 %description doc
 Documentation and examples for %{name}.
-
+%endif
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -49,8 +51,12 @@ Documentation and examples for %{name}.
 %__rm -rf %{buildroot}
 
 %{__python} setup.py install -O1 --skip-build --prefix=%{_prefix} --root=%{buildroot}
+
+%if 0%{?with_doc}
 export PYTHONPATH=%{buildroot}%{python_sitelib}
 make -C doc html
+%endif
+
 cd redhat
 for script in *.init; do
     install -p -D -m 755 "$script" "%{buildroot}%{_initrddir}/${script%.init}"
@@ -94,18 +100,21 @@ exit 0
 %defattr(-,root,root,-)
 %doc README.rst
 %{_initrddir}/*
-%{python_sitelib}/%{mod_name}*
+%{python_sitelib}/*
 %{_usr}/bin/*
-%config(noreplace) /etc/nova-billing
+
+%defattr(-,nova-billing,nova-billing,-)
+%config(noreplace) /etc/nova-billing/*
 
 %defattr(0775,nova-billing,nova-billing,-)
 %dir %{_sharedstatedir}/nova-billing
 %dir %{_localstatedir}/log/nova-billing
 %dir %{_localstatedir}/run/nova-billing
 
-
+%if 0%{?with_doc}
 %files doc
 %defattr(-,root,root,-)
 %doc doc/build/html
+%endif
 
 %changelog

@@ -1,9 +1,8 @@
 {
+    "heart_db_uri": "sqlite://///var/lib/nova-billing/nova-billing.db",
     "host": "0.0.0.0",
-    "port": 8787,
-    "admin_token": "999888777666",
-    "billing_heart_url": "http://127.0.0.1:8787",
-    "nova_url": "http://127.0.0.1:8774/v1.1",
-    "keystone_url": "http://127.0.0.1:35357/v2.0",
-    "heart_db_url": "sqlite://///var/lib/nova-billing/nova-billing.db"
+    "log_dir": "/var/log/nova-billing",
+    "log_format": "%(asctime)-15s:nova-billing:%(levelname)s:%(name)s:%(message)s",
+    "log_level": "DEBUG",
+    "port": 8787
 }

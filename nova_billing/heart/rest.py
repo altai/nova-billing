@@ -20,8 +20,9 @@
 REST API for Nova Billing Heart
 """
 
-import json
 import datetime
+import json
+import logging
 
 from flask import Flask, request, session, redirect, url_for, \
      jsonify, Response
@@ -34,6 +35,9 @@ from .database.models import BillingBase, CostCenter, Account, Resource, Segment
 
 from nova_billing import utils
 from nova_billing.version import version_string
+
+
+LOG = logging.getLogger(__name__)
 
 
 def request_json():
@@ -241,7 +245,7 @@ def version_get():
             "status": "CURRENT",
             "id": "v2",
             "links": links("%s/v2" % start_url,
-                           ("bill", "resource", "account", "tariff", "cost_center"))
+                           ("report", "resource", "account", "tariff", "cost_center"))
         },
         {
             "status": "SUPPORTED",
@@ -351,6 +355,7 @@ def process_resource(rsrc, parent_id, account_id, cost_center_id):
 @app.route("/v2/event", methods=["POST"])
 def event_create():
     rj = request_json()
+    LOG.debug("received event %s" % rj)
     rj_datetime = check_and_get_datatime(rj)
     account_id, cost_center_id = account_get_or_create(rj)
 

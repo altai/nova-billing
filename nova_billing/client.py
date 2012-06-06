@@ -13,11 +13,11 @@ class RestClient(object):
     debug = False
     auth_headers = {}
     management_url = ""
-    
+
     def __init__(self, *args, **kwargs):
         for key, value in kwargs.iteritems():
             setattr(self, key, value)
-    
+
     def http_log(self, args, kwargs, resp, body):
         if not self.debug:
             return

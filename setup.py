@@ -46,6 +46,8 @@ setup(name='nova-billing',
         'console_scripts': [
             'nova-billing-heart = nova_billing.heart.main:main',
             'nova-billing-os-amqp = nova_billing.os_amqp.main:main',
+            'nova-billing-populate = nova_billing.populate:main',
+            'nova-billing-configure = nova_billing.configure:main',
         ]
       },
       py_modules=[],

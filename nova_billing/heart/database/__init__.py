@@ -5,5 +5,5 @@ from nova_billing.heart import app
 from nova_billing.utils import global_conf
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = global_conf.heart_db_url
+app.config['SQLALCHEMY_DATABASE_URI'] = global_conf.heart_db_uri
 db = SQLAlchemy(app)

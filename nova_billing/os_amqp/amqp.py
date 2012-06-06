@@ -41,17 +41,17 @@ LOG = logging.getLogger(__name__)
 
 
 class Service(object):
-    billing_heart = utils.get_heart_client()
+    billing_heart = utils.clients.billing
     heart_request_interceptors = (
         instances.create_heart_request,
-        volumes.create_heart_request,                                  
+        volumes.create_heart_request,
     )
     """
     Class of AMQP listening service.
     Usually this service starts at the beginning of the billing daemon
     and starts listening immediately. In case of connection errors
     reconnection attempts will be made periodically.
-    
+
     The service listens for ``compute.#`` routing keys.
     """
     def __init__(self):
@@ -113,6 +113,7 @@ class Service(object):
                 heart_request.setdefault("datetime", utils.datetime_to_str(
                     self.get_event_datetime(body)))
                 heart_request.setdefault("account", body["_context_project_id"])
+                LOG.debug("posting event to the Heart: %s" % heart_request)
                 try:
                     self.billing_heart.event(heart_request)
                 except socket.error as ex:

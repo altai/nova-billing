@@ -23,11 +23,11 @@ from nova_billing import utils
 
 
 class GlanceBillingFilter(object):
-    billing_heart = utils.get_heart_client()
+    billing_heart = utils.clients.billing
 
     def __init__(self, application):
         self.application = application
-    
+
     @webob.dec.wsgify
     def __call__(self, req):
         resp = req.get_response(self.application)
