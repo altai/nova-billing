@@ -54,17 +54,19 @@ def main():
 
     nova_api_config = ConfigParser()
     nova_api_config.read(["/etc/nova/api-paste.ini"])
-    for param in ("auth_uri",
-                  "admin_tenant_name",
-                  "admin_user",
-                  "admin_password"):
+    keystone_conf = {}
+    conf_map = {"auth_uri": "auth_uri",
+                "admin_tenant_name": "tenant_name",
+                "admin_user": "username",
+                "admin_password": "password"}
+    for param_nova, param_client in conf_map.iteritems():
         try:
-            value = nova_api_config.get("filter:authtoken", param)
+            value = nova_api_config.get("filter:authtoken", param_nova)
         except Exception as e:
             print e
         else:
-            conf[param] = value
-
+            keystone_conf[param_client] = value
+    conf["keystone_conf"] = keystone_conf
     json.dump(conf, open(CONFIG_FILE, "w"), indent=4, sort_keys=True)
 
 

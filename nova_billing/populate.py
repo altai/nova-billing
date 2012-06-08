@@ -28,7 +28,7 @@ from sqlalchemy import create_engine
 from flask import _request_ctx_stack
 
 from nova_billing import utils
-from nova_billing.utils import global_conf, clients
+from nova_billing.utils import global_conf, get_clients
 from nova_billing.heart.database import db
 from nova_billing.heart.database import api as db_api
 from nova_billing.heart.database.models import Segment, Resource
@@ -112,7 +112,7 @@ def check_skip_on_exists(resource, overwrite):
 
 
 def migrate_glance(overwrite):
-    client = clients.glance
+    client = get_clients().glance
     tariffs = db_api.tariff_map()
     acc_man = AccountManager()
 
@@ -142,7 +142,7 @@ def migrate_glance(overwrite):
 
 
 def migrate_nova(overwrite):
-    client = clients.nova
+    client = get_clients().nova
     tariffs = db_api.tariff_map()
     acc_man = AccountManager()
     flavors = {}

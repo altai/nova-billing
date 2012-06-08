@@ -41,7 +41,6 @@ LOG = logging.getLogger(__name__)
 
 
 class Service(object):
-    billing_heart = utils.clients.billing
     heart_request_interceptors = (
         instances.create_heart_request,
         volumes.create_heart_request,
@@ -55,6 +54,7 @@ class Service(object):
     The service listens for ``compute.#`` routing keys.
     """
     def __init__(self):
+        self.billing_heart = utils.get_clients().billing
         self.params = dict(hostname=global_conf.rabbit_host,
                           port=global_conf.rabbit_port,
                           userid=global_conf.rabbit_userid,

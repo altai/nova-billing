@@ -18,7 +18,7 @@
 
 import logging
 from nova_billing import utils
-from nova_billing.utils import global_conf, clients
+from nova_billing.utils import global_conf
 
 
 LOG = logging.getLogger(__name__)
@@ -74,13 +74,15 @@ no_flavor = {
     "vcpus": 0,
 }
 
+nova = None
+
 def get_flavor(flavor_id):
     try:
         return flavors[flavor_id]
     except KeyError:
         pass
     try:
-        flav = clients.nova.flavors.get(flavor_id)
+        flav = nova.flavors.get(flavor_id)
     except:
         return no_flavor
     b_flav = {"name": flav.name}
@@ -93,12 +95,16 @@ def get_flavor(flavor_id):
 def get_instance_flavor(instance_id):
     try:
         return get_flavor(
-            clients.nova.servers.get(instance_id).flavor["id"])
+            nova.servers.get(instance_id).flavor["id"])
     except:
         return no_flavor
 
 
 def create_heart_request(method, body):
+    global nova
+    if not nova:
+        nova = utils.get_clients().nova
+
     try:
         state = target_state[method]
     except KeyError:
