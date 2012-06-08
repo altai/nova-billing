@@ -206,6 +206,9 @@ def tariffs_migrate(old_tariffs, new_tariffs, event_datetime):
         ((key, float(value))
          for key, value in new_tariffs.iteritems()
          if value != old_tariffs.get(key, 1.0)))
+    if not new_tariffs:
+        return
+
     connection = db.session.connection()
     for rtype in new_tariffs:
         old_t = old_tariffs.get(rtype, 1.0)
@@ -213,32 +216,30 @@ def tariffs_migrate(old_tariffs, new_tariffs, event_datetime):
             old_t = 1.0
 
         connection.execute(
-            "insert into %(segment)s"
-            " (resource_id, cost, begin_at, end_at)"
-            " select resource_id, cost * ?, ?, NULL"
-            " from %(segment)s, %(resource)s"
-            " where end_at is NULL "
-            " and %(segment)s.resource_id = %(resource)s.id"
-            " and %(resource)s.rtype = ?" %
-            {"segment": Segment.__tablename__,
-             "resource": Resource.__tablename__},
-            new_tariffs[rtype] / old_t,
-            event_datetime,
-            rtype)
+            text(
+                "insert into %(segment)s"
+                " (resource_id, cost, begin_at, end_at)"
+                " select resource_id, cost * :mpy, :event_datetime, NULL"
+                " from %(segment)s, %(resource)s"
+                " where end_at is NULL "
+                " and %(segment)s.resource_id = %(resource)s.id"
+                " and %(resource)s.rtype = :rtype" %
+                {"segment": Segment.__tablename__,
+                 "resource": Resource.__tablename__}),
+            mpy=new_tariffs[rtype] / old_t,
+            event_datetime=event_datetime,
+            rtype=rtype)
 
-    changed_keys = new_tariffs.keys()
-    max_args = 32
-    for i in xrange(1 + len(changed_keys) / max_args):
-        partial_keys = changed_keys[i * max_args:(i + 1) * max_args]
+    for rtype in new_tariffs.keys():
         connection.execute(
-            "update %(segment)s"
-            " set end_at = ?"
-            " where end_at is NULL"
-            " and begin_at != ?"
-            " and resource_id in"
-            " (select id from %(resource)s where rtype in (%(type_list)s))" %
-            {"segment": Segment.__tablename__,
-             "resource": Resource.__tablename__,
-             "type_list": ", ".join(repeat("?", len(partial_keys)))},
-            event_datetime, event_datetime,
-            *partial_keys)
+            text(
+                "update %(segment)s"
+                " set end_at = :event_datetime"
+                " where end_at is NULL"
+                " and begin_at != :event_datetime"
+                " and resource_id in"
+                " (select id from %(resource)s where rtype=:rtype)" %
+                {"segment": Segment.__tablename__,
+                 "resource": Resource.__tablename__}),
+            event_datetime=event_datetime,
+            rtype=rtype)

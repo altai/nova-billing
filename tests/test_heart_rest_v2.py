@@ -100,7 +100,7 @@ class TestCase(tests.TestCase):
         self.feed_requests("rest.v2/account_create.json")
 
     def create_tariffs(self):
-        self.feed_requests("rest.v2/tariff_update.json")
+        self.feed_requests("rest.v2/tariff_create.json")
 
     def populate_db(self):
         self.create_accounts()
@@ -125,6 +125,7 @@ class TestCase(tests.TestCase):
     def test_tariff(self):
         self.create_tariffs()
         self.feed_requests("rest.v2/tariff_get.json")
+        self.feed_requests("rest.v2/tariff_update.json")
 
     def test_account(self):
         self.create_accounts()

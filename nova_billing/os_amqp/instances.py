@@ -74,7 +74,16 @@ no_flavor = {
     "vcpus": 0,
 }
 
+
 nova = None
+
+
+def get_nova():
+    global nova
+    if not nova:
+        nova = utils.get_clients().nova
+    return nova
+
 
 def get_flavor(flavor_id):
     try:
@@ -82,7 +91,7 @@ def get_flavor(flavor_id):
     except KeyError:
         pass
     try:
-        flav = nova.flavors.get(flavor_id)
+        flav = get_nova().flavors.get(flavor_id)
     except:
         return no_flavor
     b_flav = {"name": flav.name}
@@ -95,16 +104,13 @@ def get_flavor(flavor_id):
 def get_instance_flavor(instance_id):
     try:
         return get_flavor(
-            nova.servers.get(instance_id).flavor["id"])
+            get_nova().servers.get(
+                instance_id).flavor["id"])
     except:
         return no_flavor
 
 
 def create_heart_request(method, body):
-    global nova
-    if not nova:
-        nova = utils.get_clients().nova
-
     try:
         state = target_state[method]
     except KeyError:

@@ -511,13 +511,10 @@ def cost_center_delete():
         raise BadRequest("Cost centers for delete and migrate are the same.")
 
     connection = db.session.connection()
-    for table in Resource.__tablename__, Account.__tablename__:
-        connection.execute(
-            "update %(table)s"
-            " set cost_center_id=?"
-            " where cost_center_id=?" %
-            {"table": table},
-            to_migrate.id, to_delete.id)
+    for table in Resource, Account:
+        db.session.query(table).filter_by(
+            cost_center_id=to_delete.id).update(
+            {table.cost_center_id: to_migrate.id})
     db.session.delete(to_delete)
     db.session.commit()
     return Response(status=204)

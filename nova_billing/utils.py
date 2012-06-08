@@ -108,6 +108,7 @@ class GlobalConf(object):
         "log_dir": "/var/log/nova-billing",
         "log_format": "%(asctime)-15s:nova-billing:%(levelname)s:%(name)s:%(message)s",
         "log_level": "DEBUG",
+        "heart_db_uri": "",
         "keystone_conf": {},
     }
 

@@ -94,21 +94,10 @@ class AccountManager(object):
 
 
 def check_skip_on_exists(resource, overwrite):
-    if overwrite:
-        Segment.query.filter_by(resource_id=resource.id).delete()
-        connection = db.session.connection()
-        connection.execute(
-            "delete from %(segment)s"
-            " where resource_id in"
-            " (select id from %(resource)s where parent_id = ?)" %
-            {"segment": Segment.__tablename__,
-             "resource": Resource.__tablename__},
-            resource.id)
-    else:
-        if Segment.query.filter_by(resource_id=resource.id).first():
-            LOG.debug("segments for resource %s (name=%s) already exist" %
-                      (resource.id, resource.name))
-            return True
+    if Segment.query.filter_by(resource_id=resource.id).first():
+        LOG.debug("segments for resource %s (name=%s) already exist" %
+                  (resource.id, resource.name))
+        return True
 
 
 def migrate_glance(overwrite):

@@ -48,7 +48,7 @@ class TestCase(tests.TestCase):
         self.day += 1
         return datetime.datetime(2011, 1, self.day)
 
-    def fake_event(self, req):
+    def event(self, req):
         self.requests.append(req)
 
     def fake_get_instance_flavor(self, instance_id):
@@ -59,7 +59,7 @@ class TestCase(tests.TestCase):
         self.requests = []
         service = amqp.Service()
 
-        self.stubs.Set(service.billing_heart, "event", self.fake_event)
+        service.billing_heart = self
         self.stubs.Set(service, "get_event_datetime", self.fake_get_event_datetime)
         self.stubs.Set(instances, "get_instance_flavor", self.fake_get_instance_flavor)
 
@@ -89,7 +89,7 @@ class TestCase(tests.TestCase):
         self.requests = []
         service = amqp.Service()
 
-        self.stubs.Set(service.billing_heart, "event", self.fake_event)
+        service.billing_heart = self
         self.stubs.Set(service, "get_event_datetime", self.fake_get_event_datetime)
         self.stubs.Set(instances, "get_instance_flavor", self.fake_get_instance_flavor)
 
