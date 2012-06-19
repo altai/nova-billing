@@ -19,12 +19,12 @@
 import json
 import webob
 
-from nova_billing import utils
+from nova_billing.utils import global_conf
 
 
 class GlanceBillingFilter(object):
     def __init__(self, application):
-        self,billing_heart = utils.get_clients().billing
+        self,billing_heart = global_conf.clients.billing
         self.application = application
 
     @webob.dec.wsgify

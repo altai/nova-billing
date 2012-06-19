@@ -20,6 +20,8 @@ BuildRequires:    python-devel python-setuptools make
 BuildArch:        noarch
 Requires:         python-flask
 Requires:         python-flask-sqlalchemy
+Requires:         python-openstackclient-base
+
 Requires:         start-stop-daemon
 
 %description

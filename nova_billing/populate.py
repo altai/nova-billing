@@ -1,4 +1,3 @@
-
 #!/usr/bin/python2
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
@@ -21,14 +20,13 @@
 
 import json
 import logging
-import sys
-
+import 
 
 from sqlalchemy import create_engine
 from flask import _request_ctx_stack
 
 from nova_billing import utils
-from nova_billing.utils import global_conf, get_clients
+from nova_billing.utils import global_conf
 from nova_billing.heart.database import db
 from nova_billing.heart.database import api as db_api
 from nova_billing.heart.database.models import Segment, Resource
@@ -40,7 +38,7 @@ LOG = logging.getLogger(__name__)
 
 
 
-usage = "usage: nova-billing-migrate glance|nova|billing_v1 [-o|-overwrite] [URI]"
+usage = "usage: nova-billing-migrate glance|nova|billing_v1 [URI]"
 
 
 def complain_usage():
@@ -58,19 +56,12 @@ def main():
     db.create_all()
     if sys.argv[1] == "sync":
         return
-    overwrite = False
-    uri = None
-    for i in sys.argv[2:]:
-        if i == "-o" or i == "--overwrite":
-            overwrite = True
-        else:
-            uri = i
     if sys.argv[1] == "glance":
-        migrate_glance(overwrite)
+        migrate_glance()
     elif sys.argv[1] == "nova":
-        migrate_nova(overwrite)
-    elif sys.argv[1] == "billing_v1" and uri:
-        migrate_billing_v1(uri)
+        migrate_nova()
+    elif sys.argv[1] == "billing_v1" and len(sys.argv) >= 3:
+        migrate_billing_v1(sys.argv[2])
     else:
         complain_usage()
 
@@ -93,15 +84,15 @@ class AccountManager(object):
             return obj
 
 
-def check_skip_on_exists(resource, overwrite):
+def check_skip_on_exists(resource):
     if Segment.query.filter_by(resource_id=resource.id).first():
         LOG.debug("segments for resource %s (name=%s) already exist" %
                   (resource.id, resource.name))
         return True
 
 
-def migrate_glance(overwrite):
-    client = get_clients().glance
+def migrate_glance():
+    client = global_conf.clients.image
     tariffs = db_api.tariff_map()
     acc_man = AccountManager()
 
@@ -116,7 +107,7 @@ def migrate_glance(overwrite):
             account_id, None, None,
             ResourceTypes.Image,
             img1.id)
-        if check_skip_on_exists(img2, overwrite):
+        if check_skip_on_exists(img2):
             continue
         LOG.debug("adding info for image %s (name=%s)" % (img2.id, img2.name))
         seg = Segment(
@@ -130,8 +121,8 @@ def migrate_glance(overwrite):
     db.session.commit()
 
 
-def migrate_nova(overwrite):
-    client = get_clients().nova
+def migrate_nova():
+    client = global_conf.clients.compute
     tariffs = db_api.tariff_map()
     acc_man = AccountManager()
     flavors = {}
@@ -149,7 +140,7 @@ def migrate_nova(overwrite):
                 acc_id, None, None,
                 ResourceTypes.Instance,
                 inst1.id)
-            if check_skip_on_exists(inst2, overwrite):
+            if check_skip_on_exists(inst2):
                 continue
 
             try:

@@ -17,7 +17,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-from nova_billing import utils
 from nova_billing.utils import global_conf
 
 
@@ -75,14 +74,14 @@ no_flavor = {
 }
 
 
-nova = None
+compute = None
 
 
-def get_nova():
-    global nova
-    if not nova:
-        nova = utils.get_clients().nova
-    return nova
+def get_compute():
+    global compute
+    if not compute:
+        compute = global_conf.clients.compute
+    return compute
 
 
 def get_flavor(flavor_id):
@@ -91,12 +90,12 @@ def get_flavor(flavor_id):
     except KeyError:
         pass
     try:
-        flav = get_nova().flavors.get(flavor_id)
+        flav = get_compute().flavors.get(flavor_id)
     except:
         return no_flavor
     b_flav = {"name": flav.name}
-    for nova, billing in flavor_map.iteritems():
-        b_flav[billing] = getattr(flav, nova)
+    for compute, billing in flavor_map.iteritems():
+        b_flav[billing] = getattr(flav, compute)
     flavors[flavor_id] = b_flav
     return b_flav
 
@@ -104,7 +103,7 @@ def get_flavor(flavor_id):
 def get_instance_flavor(instance_id):
     try:
         return get_flavor(
-            get_nova().servers.get(
+            get_compute().servers.get(
                 instance_id).flavor["id"])
     except:
         return no_flavor

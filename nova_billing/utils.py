@@ -29,7 +29,8 @@ import sys
 import os
 from datetime import datetime
 
-from nova_billing.client import BillingHeartClient
+from openstackclient_base import patch_clients
+from openstackclient_base.client_set import ClientSet
 
 
 LOG = logging.getLogger(__name__)
@@ -146,91 +147,11 @@ class GlobalConf(object):
         LOG.addHandler(handler)
         LOG.setLevel(level)
 
+    @property
+    def clients(self):
+        return ClientSet(**self.keystone_conf)
+
 
 CONFIG_FILE = "/etc/nova-billing/settings.json"
 global_conf = GlobalConf()
 global_conf.load_from_file(CONFIG_FILE)
-
-
-class ClientSet(object):
-
-    @staticmethod
-    def strip_version(endpoint):
-        if not endpoint:
-            return ""
-        if endpoint.endswith("/"):
-            endpoint = endpoint[:-1]
-        if endpoint.endswith("/v2.0"):
-            endpoint = endpoint[:-5]
-        if endpoint.endswith("/v1"):
-            endpoint = endpoint[:-3]
-        return endpoint
-
-    def __init__(self, **conf):
-        """
-        Acceptable arguments:
-        - auth_uri or auth_url;
-        - username, password;
-        - tenant_id, tenant_name=None;
-        - token, region_name.
-        """
-        self.conf = conf.copy()
-        self.conf["auth_uri"] = "%s/v2.0" % self.strip_version(
-            conf.get("auth_uri") or conf.get("auth_url"))
-
-    @property
-    def keystone(self):
-        conf = self.conf
-        from keystoneclient.v2_0.client import Client as KeystoneClient
-        keystone = KeystoneClient(
-            username=conf.get("username"),
-            password=conf.get("password"),
-            tenant_id=conf.get("tenant_id"),
-            tenant_name=conf.get("tenant_name"),
-            auth_url=conf.get("auth_uri"),
-            region_name=conf.get("region_name"),
-            token=conf.get("token"))
-        # the __init__ calls authenticate() immediately
-        return keystone
-
-    @property
-    def nova(self):
-        conf = self.conf
-        keystone = self.keystone
-        from novaclient.v1_1.client import Client as NovaClient
-        nova = NovaClient(
-            conf.get("username"),
-            conf.get("password"),
-            conf.get("tenant_name"),
-            conf.get("auth_uri"),
-            region_name=conf.get("region_name"),
-            token=keystone.token)
-        nova.client.management_url = (
-            keystone.service_catalog.url_for(
-                service_type="compute"))
-        return nova
-
-    @property
-    def glance(self):
-        keystone = self.keystone
-        from glanceclient.v1.client import Client as GlanceClient
-        self.glance = GlanceClient(
-            endpoint=self.strip_version(
-                keystone.service_catalog.url_for(
-                    service_type="image")),
-            token=keystone.auth_token)
-
-    @property
-    def billing(self):
-        keystone = self.keystone
-        return BillingHeartClient(
-            management_url=keystone.service_catalog.url_for(
-                service_type="nova-billing"))
-
-clients = None
-
-def get_clients():
-    global clients
-    if not clients:
-        clients = ClientSet(**global_conf.keystone_conf)
-    return clients
