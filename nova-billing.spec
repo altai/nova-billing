@@ -9,7 +9,7 @@ Name:             nova-billing
 Version:          2.1.0
 Release:          1
 Summary:          A common billing server
-License:          GNU GPL v3
+License:          LGPL 2.1
 Vendor:           Grid Dynamics International, Inc.
 URL:              http://www.griddynamics.com/openstack
 Group:            Development/Languages/Python
@@ -24,13 +24,12 @@ Requires:         python-openstackclient-base
 
 Requires:         start-stop-daemon
 
-%description
-Nova is a cloud computing fabric controller (the main part of an IaaS system)
-built to match the popular AWS EC2 and S3 APIs. It is written in Python, using
-the Tornado and Twisted frameworks, and relies on the standard AMQP messaging
-protocol, and the Redis KVS.
 
-This package contains the nova billing server.
+%description
+The billing server stores state information for miscellaneous resources
+(instances, volumes, images, etc.) in a database and generates reports
+accessed by REST API.
+
 
 %if 0%{?with_doc}
 %package doc
@@ -39,15 +38,19 @@ Group:          Documentation
 Requires:       %{name} = %{version}-%{release}
 BuildRequires:  python-sphinx make
 
+
 %description doc
 Documentation and examples for %{name}.
 %endif
 
+
 %prep
 %setup -q -n %{name}-%{version}
 
+
 %build
 %{__python} setup.py build
+
 
 %install
 %__rm -rf %{buildroot}
@@ -118,5 +121,6 @@ exit 0
 %defattr(-,root,root,-)
 %doc doc/build/html
 %endif
+
 
 %changelog
