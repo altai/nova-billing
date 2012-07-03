@@ -54,7 +54,7 @@ class GlanceBillingFilter(object):
             heart_request["rtype"] = "glance/image"
             heart_request["account"] = req.headers["X-Tenant"]
             heart_request["datetime"] = utils.datetime_to_str(utils.now())
-            self.billing_heart.event(heart_request)
+            self.billing_heart.event.create(heart_request)
         return resp
 
     @classmethod

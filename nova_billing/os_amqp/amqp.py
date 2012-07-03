@@ -118,7 +118,7 @@ class Service(object):
                 heart_request.setdefault("account", body["_context_project_id"])
                 LOG.debug("posting event to the Heart: %s" % heart_request)
                 try:
-                    self.billing_heart.event(heart_request)
+                    self.billing_heart.event.create(heart_request)
                 except socket.error as ex:
                     LOG.error("cannot post event to the Heart: %s" % str(ex))
                 except:
