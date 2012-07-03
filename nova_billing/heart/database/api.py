@@ -215,7 +215,7 @@ def tariffs_migrate(old_tariffs, new_tariffs, event_datetime):
     connection = db.session.connection()
     for rtype in new_tariffs:
         old_t = old_tariffs.get(rtype, 1.0)
-        if old_t < 0:
+        if abs(old_t) < 1e-12:
             old_t = 1.0
 
         connection.execute(
