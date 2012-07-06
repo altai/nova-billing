@@ -22,12 +22,13 @@
 import json
 import webob
 
+from nova_billing import utils
 from nova_billing.utils import global_conf
 
 
 class GlanceBillingFilter(object):
     def __init__(self, application):
-        self,billing_heart = global_conf.clients.billing
+        self.billing_heart = global_conf.clients.billing
         self.application = application
 
     @webob.dec.wsgify
@@ -52,7 +53,7 @@ class GlanceBillingFilter(object):
             heart_request = None
         if heart_request is not None:
             heart_request["rtype"] = "glance/image"
-            heart_request["account"] = req.headers["X-Tenant"]
+            heart_request["account"] = req.headers["X-Tenant-Id"]
             heart_request["datetime"] = utils.datetime_to_str(utils.now())
             self.billing_heart.event.create(heart_request)
         return resp
