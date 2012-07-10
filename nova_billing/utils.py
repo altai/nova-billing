@@ -34,7 +34,8 @@ import sys
 import os
 from datetime import datetime
 
-from openstackclient_base import patch_clients
+from openstackclient_base.base import monkey_patch
+monkey_patch()
 from openstackclient_base.client_set import ClientSet
 
 
