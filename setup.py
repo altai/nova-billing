@@ -38,7 +38,7 @@ from nova_billing.version import version_string
 
 setup(name='nova-billing',
       version=version_string(),
-      license='GNU GPL v3',
+      license='GNU LGPL 2.1',
       description='cloud computing fabric controller',
       author='Alessio Ababilov, Ivan Kolodyazhny (GridDynamics Openstack Core Team, (c) GridDynamics)',
       author_email='openstack@griddynamics.com',

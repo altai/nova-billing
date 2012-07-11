@@ -9,7 +9,7 @@ Name:             nova-billing
 Version:          2.1.0
 Release:          1
 Summary:          A common billing server
-License:          LGPL 2.1
+License:          GNU LGPL 2.1
 Vendor:           Grid Dynamics International, Inc.
 URL:              http://www.griddynamics.com/openstack
 Group:            Development/Languages/Python
