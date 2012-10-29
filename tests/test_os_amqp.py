@@ -46,12 +46,13 @@ class TestCase(tests.TestCase):
     def setUp(self):
         super(TestCase, self).setUp()
         self.stubs.Set(amqp.Service, "__init__", lambda self: None)
+        self.event = self
 
     def fake_get_event_datetime(self, body):
         self.day += 1
         return datetime.datetime(2011, 1, self.day)
 
-    def event(self, req):
+    def create(self, req):
         self.requests.append(req)
 
     def fake_get_instance_flavor(self, instance_id):
