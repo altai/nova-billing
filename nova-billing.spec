@@ -22,6 +22,12 @@ Requires:         python-flask
 Requires:         python-flask-sqlalchemy
 Requires:         python-openstackclient-base
 
+Requires:         python-webob
+Requires:         python-kombu
+Requires:         python-amqplib
+Requires:         python-eventlet
+Requires:         python-routes
+
 Requires:         start-stop-daemon
 
 
