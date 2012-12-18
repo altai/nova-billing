@@ -38,6 +38,8 @@ class GlanceBillingFilter(object):
     @webob.dec.wsgify
     def __call__(self, req):
         resp = req.get_response(self.application)
+        if resp.status_int >= 300:
+            return resp
         path_info = req.environ.get("PATH_INFO", "/")
         if not path_info.startswith("/images"):
             return resp
